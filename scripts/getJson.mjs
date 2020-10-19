@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
 import cheerio from "cheerio";
-import { JSDOM } from "jsdom";
+import pkg from "jsdom";
+const { JSDOM } = pkg;
 
 const htmlTable = (bdyHd, guts) => `<!DOCTYPE html>
   <html>
@@ -66,13 +67,21 @@ export const getTable = async ({ from, table_id }) => {
     });
     body.push(row);
   });
-  return { table: { head, body } };
+  return { table: { head, body }, from };
 };
 
-export const getTableQuick = async ({ from }) => {
-  const data = await fs
-    .readFileSync(`./data/coronaVirusStats${from}202010_15Oct_mod1.json`)
-    .toString();
-  const table = await JSON.parse(data);
-  return { table };
-};
+const worldUsa = worldOrUsa({});
+const table = async (worldUsa) =>
+  getTable(worldUsa)
+    .then(({ table, from }) =>
+      fs.writeFileSync(
+        `./data/coronaVirusStats${from}202010_15Oct_mod1.json`,
+        JSON.stringify(table, null, 2)
+      )
+    )
+    .catch((e) => console.error("error", e));
+
+table(worldOrUsa({ from: "USA" }))
+  .then(() => console.log("finished USA"))
+  .then(() => table(worldOrUsa({ from: "World" })))
+  .then(() => console.log("finished World"));
